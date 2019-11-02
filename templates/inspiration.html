@@ -1,0 +1,98 @@
+{% extends 'layout.html' %}
+
+{% block body %}
+<div class="header">
+  <h2>FEMpower: Inspirations</h2>
+</div>
+<style>
+
+body {
+  font-family: Arial;
+  padding: 20px;
+  background: #f1f1f1;
+}
+
+/* Header/Blog Title */
+.header {
+  padding: 30px;
+  font-size: 40px;
+  text-align: center;
+  background: lightblue;
+}
+
+/* Create two unequal columns that floats next to each other */
+/* Left column */
+.leftcolumn {
+  float: left;
+  width: 75%;
+}
+
+/* Right column */
+.rightcolumn {
+  float: left;
+  width: 25%;
+  padding-left: 20px;
+}
+
+/* Fake image */
+.fakeimg {
+  background-color: #aaa;
+  width: 100%;
+  padding: 20px;
+}
+
+/* Add a card effect for articles */
+.card {
+  background-color: white;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+/* Clear floats after the columns */
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/* Footer */
+.footer {
+  padding: 20px;
+  text-align: center;
+  background: #ddd;
+  margin-top: 20px;
+}
+
+/* Responsive layout - when the screen is less than 800px wide, make the two columns stack on top of each other instead of next to each other */
+@media screen and (max-width: 800px) {
+  .leftcolumn, .rightcolumn {
+    width: 100%;
+    padding: 0;
+  }
+}
+
+</style>
+<div class="row">
+  <div class="leftcolumn">
+
+    <div class="card">
+      <h2>Sheryl Sandberg</h2>
+      <h5>COO of Facebook</h5>
+
+
+      <p>Facebook's chief operating officer since 2008, Sandberg has helped dramatically boost revenues at the social network. She founded Lean In, a nonprofit named after her bestselling book, to support women's empowerment. Her second book, Option B, which focuses on grief and resilience, was released in April 2017. She spent six years as a vice president at Google, where she developed its lucrative online advertising programs. One of the nation's most influential female executives, she has been thrust into defending Facebook's work battling election meddling.</p>
+</div>
+
+    <div class="card">
+      <h2>Zoe Adamovicz</h2>
+      <h5>Cofounder and CEO, Neufund</h5>
+
+
+      <p>Swedish engineering physicist Elina Berglund completed her PhD at CERN where she was searching for the elusive Higgs boson particle. After its discovery in 2012, Berglund turned her attention to family life and sought to find an alternative to the contraceptive pill. Natural Cycles is now used by more than 900,000 people in more than 200 countries. It has raised $37.5 million to date.</p>
+
+    </div>
+  </div>
+
+
+
+  {% endblock %}
