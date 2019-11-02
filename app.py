@@ -1,8 +1,11 @@
-from flask import Flask, render_template, redirect, flash, request, url_for
-from wtforms import Form, StringField, TextAreaField, PasswordField, validators, SelectField
+# Python standard libraries
 import json
 import os
 import sqlite3
+
+# Third party libraries
+from flask import Flask, redirect, request, url_for, render_template
+from wtforms import Form, StringField, TextAreaField, PasswordField, validators, SelectField
 from flask_login import (
     LoginManager,
     current_user,
@@ -24,14 +27,20 @@ GOOGLE_DISCOVERY_URL = (
     "https://accounts.google.com/.well-known/openid-configuration"
 )
 
+# Flask app setup
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(24)
-
 
 # User session management setup
 # https://flask-login.readthedocs.io/en/latest
 login_manager = LoginManager()
 login_manager.init_app(app)
+
+
+@login_manager.unauthorized_handler
+def unauthorized():
+    return "You must be logged in to access this content.", 403
+
 
 # Naive database setup
 try:
@@ -40,7 +49,7 @@ except sqlite3.OperationalError:
     # Assume it's already been created
     pass
 
-# OAuth 2 client setup
+# OAuth2 client setup
 client = WebApplicationClient(GOOGLE_CLIENT_ID)
 
 # Flask-Login helper to retrieve a user from our db
@@ -48,24 +57,33 @@ client = WebApplicationClient(GOOGLE_CLIENT_ID)
 def load_user(user_id):
     return User.get(user_id)
 
+class MatchForm(Form):
+    name = StringField('Name', [validators.optional(), validators.length(max=200)])
+    email = StringField('Email Address', [validators.optional(), validators.length(max=200)])
+    phone = StringField('Phone number', [validators.optional(), validators.length(max=200)])
 
-@app.route('/')
+@app.route("/")
 def index():
     if current_user.is_authenticated:
-        return (
-            "<p>Hello, {}! You're logged in! Email: {}</p>"
-            "<div><p>Google Profile Picture:</p>"
-            '<img src="{}" alt="Google profile pic"></img></div>'
-            '<a class="button" href="/logout">Logout</a>'.format(
-                current_user.name, current_user.email, current_user.profile_pic
-            )
-        )
+        name = current_user.name
+        email = current_user.email
+        return redirect(url_for("home"))
     else:
-        return '<a class="button" href="/login">Google Login</a>'
+        return render_template('index.html')
 
+@app.route("/home")
+def home():
+    return render_template('homepage.html')
 
-def get_google_provider_cfg():
-    return requests.get(GOOGLE_DISCOVERY_URL).json()
+@app.route("/addfriend", methods=['GET', 'POST'])
+def addfriend():
+    form = MatchForm(request.form)
+    if request.method == 'POST':
+        name = form.name.data
+        email = form.email.data
+        phone = form.phone.data
+        return render_template('friend.html')
+    return render_template('add.html', form=form)
 
 @app.route("/login")
 def login():
@@ -73,7 +91,7 @@ def login():
     google_provider_cfg = get_google_provider_cfg()
     authorization_endpoint = google_provider_cfg["authorization_endpoint"]
 
-    # Use library to construct the request for Google login and provide
+    # Use library to construct the request for login and provide
     # scopes that let you retrieve user's profile from Google
     request_uri = client.prepare_request_uri(
         authorization_endpoint,
@@ -81,6 +99,7 @@ def login():
         scope=["openid", "email", "profile"],
     )
     return redirect(request_uri)
+
 
 @app.route("/login/callback")
 def callback():
@@ -92,12 +111,12 @@ def callback():
     google_provider_cfg = get_google_provider_cfg()
     token_endpoint = google_provider_cfg["token_endpoint"]
 
-    # Prepare and send a request to get tokens! Yay tokens!
+    # Prepare and send request to get tokens! Yay tokens!
     token_url, headers, body = client.prepare_token_request(
         token_endpoint,
         authorization_response=request.url,
         redirect_url=request.base_url,
-        code=code
+        code=code,
     )
     token_response = requests.post(
         token_url,
@@ -109,16 +128,16 @@ def callback():
     # Parse the tokens!
     client.parse_request_body_response(json.dumps(token_response.json()))
 
-    # Now that you have tokens (yay) let's find and hit the URL
-    # from Google that gives you the user's profile information,
-    # including their Google profile image and email
+    # Now that we have tokens (yay) let's find and hit URL
+    # from Google that gives you user's profile information,
+    # including their Google Profile Image and Email
     userinfo_endpoint = google_provider_cfg["userinfo_endpoint"]
     uri, headers, body = client.add_token(userinfo_endpoint)
     userinfo_response = requests.get(uri, headers=headers, data=body)
 
-    # You want to make sure their email is verified.
-    # The user authenticated with Google, authorized your
-    # app, and now you've verified their email through Google!
+    # We want to make sure their email is verified.
+    # The user authenticated with Google, authorized our
+    # app, and now we've verified their email through Google!
     if userinfo_response.json().get("email_verified"):
         unique_id = userinfo_response.json()["sub"]
         users_email = userinfo_response.json()["email"]
@@ -127,13 +146,13 @@ def callback():
     else:
         return "User email not available or not verified by Google.", 400
 
-    # Create a user in your db with the information provided
+    # Create a user in our db with the information provided
     # by Google
     user = User(
         id_=unique_id, name=users_name, email=users_email, profile_pic=picture
     )
 
-    # Doesn't exist? Add it to the database.
+    # Doesn't exist? Add to database
     if not User.get(unique_id):
         User.create(unique_id, users_name, users_email, picture)
 
@@ -143,6 +162,7 @@ def callback():
     # Send user back to homepage
     return redirect(url_for("index"))
 
+
 @app.route("/logout")
 @login_required
 def logout():
@@ -150,71 +170,9 @@ def logout():
     return redirect(url_for("index"))
 
 
-DEGREE = [('1', "Middle School"), ('2', "High School"), ('3', "College Student"), ('4', "Grad School")]
-class MatchForm(Form):
-    name = StringField('Name', [validators.optional(), validators.length(max=200)])
-    email = StringField('Email Address', [validators.optional(), validators.length(max=200)])
-    degree = SelectField(label='Degee', choices=DEGREE)
-    skills = StringField('Skills', [validators.optional(), validators.length(max=200)])
-    otherinterests = StringField('Other Interests', [validators.optional(), validators.length(max=200)])
+def get_google_provider_cfg():
+    return requests.get(GOOGLE_DISCOVERY_URL).json()
 
-@app.route('/Statistics')
-def statis():
-    return render_template('statistics.html')
-@app.route('/about')
-def about():
-    return render_template('about.html')
-@app.route('/inspiration')
-def inspiration():
-    return render_template('inspiration.html')
-@app.route('/fit', methods=['GET', 'POST'])
-def fit():
-    form = MatchForm(request.form)
-    if request.method == 'POST':
-        name = form.name.data
-        email = form.email.data
-        degree = form.degree.data
-        skills = form.skills.data
-        otherinterests = form.otherinterests.data
-        jsonFile = convertJson(name, email, degree, skills, otherinterests)
-        output = "software engineer"
 
-        if "programming" or "Programming" in skills:
-            output = "software engineer"
-        if "communication" in skills:
-            output = "Product Manager, Recruiter"
-        if "Communication" in skills:
-            output = "Product Manager, Recruiter"
-        if "Design" in skills:
-            output = "UI/UX"
-        if "design" in skills:
-            output = "UI/UX"
-        if "Gaming" in skills:
-            output = "Game Designer"
-        if "gaming" in skills:
-            output = "Game Designer"
-        if "Leadership" in skills:
-            output = "Project Manager"
-
-        if "leadership" in skills:
-            output = "Project Manager"
-
-        return render_template('displayresult.html', companies = output)
-
-    return render_template('fit.html', form=form)
-
-def convertJson(name, email, degree, skills, otherinterests):
-    result = []
-    myjson = {
-            'Name': name,
-            'Email': email,
-            'Degree': degree,
-            'Skills': skills,
-            'Interests': otherinterests
-    }
-    result.append(myjson)
-    return json.dumps(result)
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(ssl_context="adhoc")
-    # app.run(debug=True)
