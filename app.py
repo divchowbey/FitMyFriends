@@ -19,6 +19,7 @@ import requests
 # Internal imports
 from db import init_db_command
 from user import User
+from friend import Friend
 
 # Configuration
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", None)
@@ -83,6 +84,8 @@ def addfriend():
         email = form.email.data
         phone = form.phone.data
         return render_template('friend.html')
+    friend = Friend(
+          id_ = 
     return render_template('add.html', form=form)
 
 @app.route("/login")
@@ -161,6 +164,8 @@ def callback():
 
     # Send user back to homepage
     return redirect(url_for("index"))
+
+
 
 
 @app.route("/logout")
