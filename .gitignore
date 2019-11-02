@@ -1,3 +1,4 @@
 .secrets
 myvenv/
 __pycache__/
+MyVenv/
