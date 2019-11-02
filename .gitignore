@@ -1,3 +1,6 @@
 .secrets
 myvenv/
 __pycache__/
+MyVenv/
+myvenv/
+sqlite_db
