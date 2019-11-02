@@ -1,8 +1,10 @@
-from flask import Flask, render_template, redirect, flash, request, url_for
-from wtforms import Form, StringField, TextAreaField, PasswordField, validators, SelectField
+# Python standard libraries
 import json
 import os
 import sqlite3
+
+# Third-party libraries
+from flask import Flask, render_template, redirect, flash, request, url_for
 from flask_login import (
     LoginManager,
     current_user,
@@ -11,6 +13,8 @@ from flask_login import (
     logout_user,
 )
 from oauthlib.oauth2 import WebApplicationClient
+from wtforms import Form, StringField, TextAreaField, PasswordField, validators, SelectField
+from twilio.twiml.messaging_response import MessagingResponse
 import requests
 
 # Internal imports
@@ -149,6 +153,17 @@ def logout():
     logout_user()
     return redirect(url_for("index"))
 
+
+@app.route("/sms", methods=['GET', 'POST'])
+def sms_ahoy_reply():
+    """Respond to incoming messages with a friendly SMS."""
+    # Start our response
+    resp = MessagingResponse()
+
+    # Add a message
+    resp.message("Ahoy! Thanks so much for your message.")
+
+    return str(resp)
 
 DEGREE = [('1', "Middle School"), ('2', "High School"), ('3', "College Student"), ('4', "Grad School")]
 class MatchForm(Form):
