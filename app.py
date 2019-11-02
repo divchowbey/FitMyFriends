@@ -69,7 +69,7 @@ def index():
         email = current_user.email
         return redirect(url_for("home"))
     else:
-        return '<a class="button" href="/login">Google Login</a>'
+        return render_template('index.html')
 
 @app.route("/home")
 def home():
